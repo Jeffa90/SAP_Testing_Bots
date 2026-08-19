@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Error catalogue &middot; saptest{% endblock %}
+{% block content %}
+<h1>Error catalogue</h1>
+<p class="lede">Messages a run hit that no catalogue rule matched. Each one is a gap:
+until a rule exists, the step is failed conservatively rather than remediated.</p>
+
+{% if runs %}
+<form method="get" class="inline">
+  <label>Run
+    <select name="run" onchange="this.form.submit()">
+      {% for r in runs %}
+        <option value="{{ r.run_id }}" {% if r.run_id == selected %}selected{% endif %}>
+          {{ r.run_id }} - {{ r.flow }}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+</form>
+{% endif %}
+
+{% if groups %}
+<section>
+  <h2>Unrecognised messages</h2>
+  <table class="wide">
+    <tr><th>Message</th><th>Seen</th><th>Transactions</th><th>Users</th><th>Text</th></tr>
+    {% for g in groups %}
+    <tr>
+      <td><code>{{ g.identity[:24] }}</code></td>
+      <td>{{ g.count }}</td>
+      <td>{{ g.tcodes|join(', ') }}</td>
+      <td>{{ g.users|join(', ') }}</td>
+      <td>{{ g.sample_text }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</section>
+
+<section>
+  <h2>Draft rules</h2>
+  <p class="hint">Review each one, decide what remediation is safe, then paste into a
+    catalogue file. Drafts carry no action deliberately: a wrong remediation silently
+    changes what the test proves.</p>
+  <pre class="yaml">{{ drafts }}</pre>
+</section>
+{% elif selected %}
+<p class="ok">Every SAP message in this run was recognised by the catalogue.</p>
+{% else %}
+<p class="hint">No runs have captured unrecognised messages yet.</p>
+{% endif %}
+{% endblock %}

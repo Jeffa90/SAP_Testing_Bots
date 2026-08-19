@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}saptest{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="/">saptest</a>
+    <nav>
+      <a href="/">New run</a>
+      <a href="/runs">History</a>
+      <a href="/catalog">Error catalogue</a>
+    </nav>
+    {% if active %}
+      <a class="pill running" href="/runs/{{ active.run_id }}">Running: {{ active.run_id }}</a>
+    {% endif %}
+    <span class="ver">v{{ version }}</span>
+  </div>
+</header>
+<main>{% block content %}{% endblock %}</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

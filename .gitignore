@@ -20,6 +20,7 @@ logs/
 out/
 
 # --- Data workbooks contain bot credentials; only empty templates are committed ---
+uploads/
 data/*.xlsx
 *_UAT.xlsx
 *_updated.xlsx
