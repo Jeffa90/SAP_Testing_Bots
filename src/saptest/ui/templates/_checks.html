@@ -1,0 +1,23 @@
+<section class="checks">
+  <h2>Preflight</h2>
+  {% if error %}
+    <p class="bad">{{ error }}</p>
+  {% else %}
+    <table>
+      {% for c in report.checks %}
+      <tr class="{{ 'ok' if c.ok else ('warn' if c.warning else 'bad') }}">
+        <td class="sym">{{ c.symbol }}</td>
+        <td class="name">{{ c.name }}</td>
+        <td>{{ c.detail }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% if report.failures %}
+      <p class="bad">{{ report.failures|length }} problem(s) must be fixed before a run.</p>
+    {% elif report.warnings %}
+      <p class="warn">Ready, with {{ report.warnings|length }} warning(s).</p>
+    {% else %}
+      <p class="ok">Ready.</p>
+    {% endif %}
+  {% endif %}
+</section>

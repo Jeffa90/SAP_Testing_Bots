@@ -1,0 +1,164 @@
+# Purchase requisition field bindings -- AU landscape.
+#
+# CAPTURING THE IDS
+#   Every id below marked TODO must be captured from your own system, because
+#   ME51N's item table ids embed dynpro and subscreen numbers that differ by release
+#   and configuration. Guessed ids fail silently, so they are left blank instead.
+#
+#   To capture them, on the Windows test machine:
+#       1. Open SAP GUI, log on, and navigate to the screen you want to bind.
+#       2. saptest inspect                      (dumps every element on that screen)
+#          saptest inspect --filter MATNR       (narrow to fields matching a pattern)
+#       3. Paste the ids it prints into the `id:` lines below.
+#
+#   The `label:` values are already filled in and act as a best-effort fallback, so a
+#   binding whose id has drifted after an upgrade degrades to a slower lookup rather
+#   than a failed run. Do not rely on labels alone: they are language-dependent.
+
+fields:
+  # --- Header --------------------------------------------------------------------
+  header.purchasing_group:
+    id: ""              # TODO: saptest inspect --tcode ME51N --filter EKGRP
+    label: "Purch. group"
+    description: Purchasing group (PGr)
+
+  header.purchasing_org:
+    id: ""              # TODO: --filter EKORG
+    label: "Purch. organization"
+    description: Purchasing organisation (POrg)
+
+  # --- Item overview line --------------------------------------------------------
+  item.account_assignment:
+    id: ""              # TODO: --filter KNTTP
+    label: "A"
+    description: Account assignment category
+
+  item.item_category:
+    id: ""              # TODO: --filter PSTYP
+    label: "I"
+    description: Item category
+
+  item.material:
+    id: ""              # TODO: --filter MATNR
+    label: "Material"
+    description: Material number
+
+  item.short_text:
+    id: ""              # TODO: --filter TXZ01
+    label: "Short Text"
+    description: Item short text
+
+  item.quantity:
+    id: ""              # TODO: --filter MENGE
+    label: "Quantity"
+    description: Requisition quantity
+
+  item.unit:
+    id: ""              # TODO: --filter MEINS
+    label: "Unit"
+    description: Unit of measure
+
+  item.delivery_date:
+    id: ""              # TODO: --filter LFDAT
+    label: "Deliv. Date"
+    description: Delivery date
+
+  item.material_group:
+    id: ""              # TODO: --filter MATKL
+    label: "Matl Group"
+    description: Material group
+
+  item.plant:
+    id: ""              # TODO: --filter WERKS
+    label: "Plant"
+    description: Plant
+
+  item.storage_location:
+    id: ""              # TODO: --filter LGORT
+    label: "Stor. Loc."
+    description: Storage location
+
+  item.requisitioner:
+    id: ""              # TODO: --filter AFNAM
+    label: "Requisitioner"
+    description: Requisitioner
+
+  item.tracking_number:
+    id: ""              # TODO: --filter BEDNR
+    label: "TrackingNo"
+    description: Requirement tracking number
+
+  item.vendor:
+    id: ""              # TODO: --filter LIFNR
+    label: "Desired Vendor"
+    description: Desired vendor
+
+  item.currency:
+    id: ""              # TODO: --filter WAERS
+    label: "Currency"
+    description: Currency
+
+  item.valuation_price:
+    id: ""              # TODO: --filter PREIS
+    label: "Valuation Price"
+    description: Valuation price
+
+  item.price_unit:
+    id: ""              # TODO: --filter PEINH
+    label: "Per"
+    description: Price unit
+
+  # --- Item detail: referenced by error-catalogue remediation ---------------------
+  item.net_price:
+    id: ""              # TODO: --filter PREIS  (item detail, Valuation tab)
+    label: "Net Price"
+    description: Net price on the item detail
+
+  item.tax_code:
+    id: ""              # TODO: --filter MWSKZ
+    label: "Tax code"
+    description: Tax code
+
+  item.gl_account:
+    id: ""              # TODO: --filter SAKTO
+    label: "G/L Account"
+    description: G/L account
+
+  item.cost_centre:
+    id: ""              # TODO: --filter KOSTL
+    label: "Cost Center"
+    description: Cost centre
+
+  # --- Document selection popup (ME53N / ME23N "Other Document", Shift+F5) --------
+  select.requisition_number:
+    id: "wnd[1]/usr/ctxtRM06B-BANFN"
+    label: "Purchase requisition"
+    description: PR number in the Select Document popup
+
+# Spreadsheet column -> logical field.
+#
+# Replaces the positional `field_order` list the original script tab-traversed:
+#   field_order = ["POrg", "PGr", "Item", "A", "I", "Material", ...]
+# which broke whenever a screen variant put the fields in a different order, or a
+# user's layout added a column. Names do not have a position to get wrong.
+columns:
+  POrg: header.purchasing_org
+  PGr: header.purchasing_group
+  A: item.account_assignment
+  I: item.item_category
+  Material: item.material
+  Short Text: item.short_text
+  Crcy: item.currency
+  Quantity: item.quantity
+  Unit: item.unit
+  Valuation Price: item.valuation_price
+  Per: item.price_unit
+  Plant: item.plant
+  Delivery Date: item.delivery_date
+  Requisitioner: item.requisitioner
+  Vendor: item.vendor
+  Material Group: item.material_group
+  Storage Location: item.storage_location
+  Stor. Loc.: item.storage_location
+  TrackingNo: item.tracking_number
+  Cost Centre: item.cost_centre

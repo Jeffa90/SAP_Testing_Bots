@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ run_id }} &middot; saptest{% endblock %}
+{% block content %}
+
+<h1>Run <code>{{ run_id }}</code>
+  {% if live %}<span class="pill {{ live.status }}">{{ live.status }}</span>{% endif %}
+</h1>
+<p class="lede">
+  {% if summary %}{{ summary.flow }} &middot; region {{ summary.region }} &middot;
+    system {{ summary.system }} &middot; started {{ summary.started_at }}
+  {% elif live %}{{ live.flow }} &middot; region {{ live.region }}{% endif %}
+</p>
+
+{% if live and live.error %}<section><p class="bad">{{ live.error }}</p></section>{% endif %}
+
+{% if summary %}
+<div class="cards">
+  {% for name, count in summary.tally.items() %}{% if count %}
+    <div class="card"><div class="n {{ name }}">{{ count }}</div>
+      <div class="l">{{ name.replace('_', ' ').title() }}</div></div>
+  {% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<section>
+  <h2>Progress</h2>
+  <div id="progress">
+    {% if summary %}
+      {% for case in summary.cases %}
+        <div class="case">
+          <div class="case-head"><code>{{ case.case_id }}</code>
+            <span class="{{ case.outcome }}">{{ case.outcome }}</span>
+            {% if case.sap_user %}<span class="who">{{ case.sap_user }}</span>{% endif %}
+          </div>
+          {% for s in case.steps %}
+            <div class="step">
+              <span class="sid">{{ s.step_id }}</span>
+              <span class="sname">{{ s.name }}</span>
+              <span class="{{ s.outcome }}">{{ s.outcome }}</span>
+              <span class="sdetail">{{ s.actual_result }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    {% elif not streaming %}
+      <p class="hint">No results recorded for this run.</p>
+    {% endif %}
+  </div>
+  {% if streaming %}<p class="hint" id="waiting">Waiting for the first step...</p>{% endif %}
+</section>
+
+{% if artifacts %}
+<section>
+  <h2>Files</h2>
+  <ul class="files">
+    {% for name in artifacts %}
+      <li><a href="/runs/{{ run_id }}/file?name={{ name|urlencode }}">{{ name }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+{% if streaming %}
+<script>
+const progress = document.getElementById('progress');
+const waiting = document.getElementById('waiting');
+const cases = {};
+
+function caseBlock(id) {
+  if (cases[id]) return cases[id];
+  const el = document.createElement('div');
+  el.className = 'case';
+  el.innerHTML = `<div class="case-head"><code>${id}</code>
+    <span class="running">running</span><span class="who"></span></div>`;
+  progress.appendChild(el);
+  cases[id] = el;
+  return el;
+}
+
+const source = new EventSource('/runs/{{ run_id }}/events');
+
+source.onmessage = (e) => {
+  const {kind, payload} = JSON.parse(e.data);
+  if (waiting) waiting.remove();
+
+  if (kind === 'case_started') caseBlock(payload.case_id);
+
+  if (kind === 'case_logged_on') {
+    const who = caseBlock(payload.case_id).querySelector('.who');
+    if (who) who.textContent = payload.sap_user;
+  }
+
+  if (kind === 'step_finished') {
+    const row = document.createElement('div');
+    row.className = 'step';
+    row.innerHTML = `<span class="sid">${payload.step_id}</span>
+      <span class="sname">${payload.name}</span>
+      <span class="${payload.outcome}">${payload.outcome}</span>
+      <span class="sdetail"></span>`;
+    row.querySelector('.sdetail').textContent = payload.detail || '';
+    caseBlock(payload.case_id).appendChild(row);
+  }
+
+  if (kind === 'case_finished') {
+    const tag = caseBlock(payload.case_id).querySelector('.case-head span');
+    tag.textContent = payload.outcome;
+    tag.className = payload.outcome;
+  }
+
+  if (kind === 'run_finished' || kind === 'reports_ready' || kind === 'run_failed') {
+    setTimeout(() => location.reload(), 700);
+  }
+};
+
+source.addEventListener('done', () => { source.close(); location.reload(); });
+source.onerror = () => { /* the browser retries on its own */ };
+</script>
+{% endif %}
+{% endblock %}

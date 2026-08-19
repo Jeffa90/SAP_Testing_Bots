@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}History &middot; saptest{% endblock %}
+{% block content %}
+<h1>Run history</h1>
+{% if runs %}
+<section>
+<table class="wide">
+  <tr><th>Run</th><th>Flow</th><th>Region</th><th>Started</th><th>Cases</th>
+      <th>Outcome</th><th>Breakdown</th></tr>
+  {% for r in runs %}
+  <tr>
+    <td><a href="/runs/{{ r.run_id }}"><code>{{ r.run_id }}</code></a></td>
+    <td>{{ r.flow }}</td><td>{{ r.region }}</td><td>{{ r.started_at }}</td>
+    <td>{{ r.cases }}</td>
+    <td class="{{ r.outcome }}">{{ r.outcome }}</td>
+    <td class="breakdown">
+      {% for name, count in r.tally.items() %}{% if count %}
+        <span class="{{ name }}">{{ count }} {{ name.replace('_',' ')|lower }}</span>
+      {% endif %}{% endfor %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+</section>
+{% else %}
+<p class="hint">No runs yet. <a href="/">Start one.</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}New run &middot; saptest{% endblock %}
+{% block content %}
+
+<h1>New run</h1>
+<p class="lede">The runner drives SAP GUI on this machine, in this desktop session.
+Keep the session unlocked while a run is executing.</p>
+
+<form id="runform" method="post" action="/run">
+  <section>
+    <h2>What to run</h2>
+    <div class="grid">
+      <label>Region
+        <select name="region" required>
+          {% for r in regions %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Flow
+        <select name="flow" required>
+          {% for f in flows %}
+            <option value="{{ f.name }}" data-sheet="{{ f.data_sheet }}">
+              {{ f.title }} ({{ f.steps }} steps)
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Test data</h2>
+    <div class="grid">
+      <label>Workbook
+        <select name="workbook" id="workbook" required>
+          <option value="">-- choose or upload --</option>
+          {% for w in workbooks %}<option value="{{ w }}">{{ w }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Worksheet
+        <select name="sheet" id="sheet"><option value="">(flow default)</option></select>
+      </label>
+    </div>
+    <label class="file">Upload a workbook
+      <input type="file" id="upload" accept=".xlsx,.xlsm">
+    </label>
+    <p class="hint" id="uploadmsg"></p>
+    <p class="hint">Workbooks carrying bot credentials stay on this machine. Rows with a
+      blank password log on via SSO as the Windows user.</p>
+  </section>
+
+  <section>
+    <h2>Report details <span class="opt">optional</span></h2>
+    <div class="grid three">
+      <label>Business tester<input name="business_tester" placeholder="Name"></label>
+      <label>Functional tester<input name="functional_tester" placeholder="Name"></label>
+      <label>Change control #<input name="change_control" placeholder="CHG..."></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Options</h2>
+    <div class="grid three">
+      <label>Limit cases<input name="limit" type="number" min="1" placeholder="all"></label>
+      <label>Driver
+        <select name="driver">
+          <option value="">Profile default (SAP GUI Scripting)</option>
+          <option value="demo">Demo - simulated SAP, no landscape needed</option>
+          <option value="guiscript">SAP GUI Scripting</option>
+        </select>
+      </label>
+    </div>
+    <p class="hint">Start with a limit of 1 against a real system: it proves the bindings
+      before a full run consumes document numbers.</p>
+  </section>
+
+  <div class="actions">
+    <button type="button" id="check" class="secondary">Run preflight checks</button>
+    <button type="submit" id="go">Start run</button>
+  </div>
+  <div id="checks"></div>
+</form>
+
+{% if recent %}
+<section class="recent">
+  <h2>Recent runs</h2>
+  <table>
+    <tr><th>Run</th><th>Flow</th><th>Outcome</th><th>Cases</th></tr>
+    {% for r in recent %}
+    <tr>
+      <td><a href="/runs/{{ r.run_id }}"><code>{{ r.run_id }}</code></a></td>
+      <td>{{ r.flow }}</td>
+      <td class="{{ r.outcome }}">{{ r.outcome }}</td>
+      <td>{{ r.cases }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</section>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+const upload = document.getElementById('upload');
+const workbook = document.getElementById('workbook');
+const sheet = document.getElementById('sheet');
+const msg = document.getElementById('uploadmsg');
+
+function setSheets(list) {
+  sheet.innerHTML = '<option value="">(flow default)</option>' +
+    list.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+upload.addEventListener('change', async () => {
+  if (!upload.files.length) return;
+  const body = new FormData();
+  body.append('file', upload.files[0]);
+  msg.textContent = 'Uploading...';
+  const res = await fetch('/upload', {method: 'POST', body});
+  if (!res.ok) { msg.textContent = 'Upload failed: ' + (await res.text()); return; }
+  const data = await res.json();
+  if (![...workbook.options].some(o => o.value === data.name)) {
+    workbook.add(new Option(data.name, data.name));
+  }
+  workbook.value = data.name;
+  setSheets(data.sheets);
+  msg.textContent = `${data.name} - ${data.sheets.length} sheet(s)`;
+});
+
+workbook.addEventListener('change', async () => {
+  if (!workbook.value) { setSheets([]); return; }
+  const res = await fetch('/sheets?workbook=' + encodeURIComponent(workbook.value));
+  if (res.ok) setSheets((await res.json()).sheets);
+});
+
+document.getElementById('check').addEventListener('click', async () => {
+  const form = new FormData(document.getElementById('runform'));
+  const body = new URLSearchParams();
+  for (const k of ['region', 'flow', 'workbook', 'sheet']) body.append(k, form.get(k) || '');
+  const target = document.getElementById('checks');
+  target.innerHTML = '<p class="hint">Checking...</p>';
+  const res = await fetch('/validate', {method: 'POST', body});
+  target.innerHTML = await res.text();
+});
+</script>
+{% endblock %}
