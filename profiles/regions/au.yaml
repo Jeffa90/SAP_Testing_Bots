@@ -1,0 +1,90 @@
+# Australia -- P2P (Procure to Pay) UAT landscape.
+#
+# Adding a region means copying this file, not changing code. Every value that the
+# original scripts hardcoded lives here: default tax code, GL account, net price,
+# delivery date, and the plant exclusion list.
+
+region: AU
+description: Australia P2P -- S/4HANA UAT
+
+connection:
+  name: "S4D"           # SAP Logon connection entry name
+  client: "800"
+  language: EN
+  logon_mode: auto      # explicit when the data row carries a password, else SSO
+  description: S/4HANA UAT
+
+formats:
+  date: "%d.%m.%Y"      # SAP user profile default for AU
+  decimal: ","
+  thousands: "."
+
+# Values remediation handlers pull from via @profile.defaults.<name>
+defaults:
+  tax_code: "P1"
+  gl_account: "5514300"
+  net_price: "15"
+  delivery_date: "31.10.2026"
+  currency: "AUD"
+  purchasing_org: "AUST"
+
+# Data rows to skip. Plants without a second approver cannot complete the
+# two-user posting steps, so those cases are recorded SKIPPED rather than failed.
+exclusions:
+  plants:
+    - "1240"
+    - "1245"
+    - "1247"
+    - "1250"
+    - "1255"
+    - "7210"
+    - "7440"
+    - "7446"
+    - "7810"
+    - "7820"
+
+driver: guiscript
+fallback_driver: legacy_ui
+
+bindings:
+  - profiles/bindings/common.yaml
+  - profiles/bindings/pr_au.yaml
+
+catalogs:
+  - catalog/messages.yaml
+
+images: images/au
+
+templates:
+  standard_po: "templates/AU_PTP_Standard PO.xlsx"
+  inventory_po: "templates/AU_PTP_Inventory PO.xlsx"
+
+testplan:
+  sheet: "Test Plan"
+  header:
+    test_date: G1
+    change_control: G2
+    service_desk: G3
+    problem_id: G4
+    project_id: G5
+    business_tester: G6
+    functional_tester: G7
+    environment: G8
+  first_step_row: 11
+  columns:
+    step: A
+    name: B
+    action: C
+    how: D
+    expected: E
+    actual: F
+    result: G
+  result_text:
+    PASS: "Pass"
+    FAIL: "Fail"
+    BLOCKED_AUTH: "Blocked - No Authorisation"
+    ERROR: "Fail"
+    SKIPPED: "Not Executed"
+    MANUAL: "Manual"
+  evidence_sheet_per_step: true
+  image_max_width_px: 1000

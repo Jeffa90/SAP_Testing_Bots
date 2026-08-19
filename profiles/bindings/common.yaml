@@ -1,0 +1,78 @@
+# Field bindings shared by every transaction and region.
+#
+# These ids are stable across S/4HANA releases and SAP GUI versions -- the command
+# field, status bar, logon screen and standard toolbar buttons do not move.
+#
+# Transaction *screen* fields are a different matter: their ids embed dynpro numbers
+# that vary with release and configuration, so they are captured per landscape with
+#     saptest inspect --tcode ME51N
+# rather than guessed here.
+
+fields:
+  # --- Frame ---------------------------------------------------------------------
+  system.okcode:
+    id: "wnd[0]/tbar[0]/okcd"
+    description: Command field
+
+  system.statusbar:
+    id: "wnd[0]/sbar"
+    description: Status bar
+
+  system.titlebar:
+    id: "wnd[0]/titl"
+    description: Window title
+
+  # --- Standard toolbar ----------------------------------------------------------
+  toolbar.save:
+    id: "wnd[0]/tbar[0]/btn[11]"
+    description: Save
+
+  toolbar.back:
+    id: "wnd[0]/tbar[0]/btn[3]"
+    description: Back
+
+  toolbar.exit:
+    id: "wnd[0]/tbar[0]/btn[15]"
+    description: Exit
+
+  toolbar.cancel:
+    id: "wnd[0]/tbar[0]/btn[12]"
+    description: Cancel
+
+  toolbar.enter:
+    id: "wnd[0]/tbar[0]/btn[0]"
+    description: Enter / continue
+
+  # --- Popups --------------------------------------------------------------------
+  popup.ok:
+    id: "wnd[1]/tbar[0]/btn[0]"
+    description: Popup confirm
+
+  popup.cancel:
+    id: "wnd[1]/tbar[0]/btn[12]"
+    description: Popup cancel
+
+  popup.yes:
+    id: "wnd[1]/usr/btnSPOP-OPTION1"
+    description: Popup Yes
+
+  popup.no:
+    id: "wnd[1]/usr/btnSPOP-OPTION2"
+    description: Popup No
+
+  # --- Logon ---------------------------------------------------------------------
+  logon.client:
+    id: "wnd[0]/usr/txtRSYST-MANDT"
+    description: Client
+
+  logon.user:
+    id: "wnd[0]/usr/txtRSYST-BNAME"
+    description: User
+
+  logon.password:
+    id: "wnd[0]/usr/pwdRSYST-BCODE"
+    description: Password
+
+  logon.language:
+    id: "wnd[0]/usr/txtRSYST-LANGU"
+    description: Logon language

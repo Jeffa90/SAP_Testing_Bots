@@ -1,0 +1,165 @@
+# Base error catalogue.
+#
+# HOW MATCHING WORKS
+#   Prefer `message_id` + `number` (e.g. ME 083). That pair is stable across logon
+#   languages and never embeds runtime data, so a rule written once keeps working.
+#   `regex` matches rendered text instead, and is used when the message key is not
+#   yet known, or by the legacy_ui driver which cannot read the structured fields.
+#   A structured rule always beats a text rule for the same message.
+#
+# HOW TO FILL IN THE KEYS
+#   The rules below are seeded from the messages the original bots handled, which
+#   were only ever matched on English text. Their message classes and numbers differ
+#   per release and are not worth guessing -- a wrong key silently never matches.
+#   Instead: run against your system, then
+#       saptest catalog review
+#   which reads the captured unknown messages and prints ready-to-paste entries with
+#   the real class and number filled in. Replace the `regex:` line with the
+#   `message_id:`/`number:` pair it gives you.
+#
+# PRECEDENCE
+#   Within a tier the first entry declared wins, and later files layer over earlier
+#   ones, so a region catalogue can override any rule here by reusing its name.
+
+entries:
+
+  # --- Authorisation --------------------------------------------------------------
+  # Classified, never remediated. The point of these tests is to find out what a
+  # user's roles permit; "fixing" a missing authorisation would destroy the finding.
+
+  - name: authorization_missing
+    match:
+      regex: "(not author[is]sed|not authorized|no author[is]sation|no authorization)"
+    actions: []
+    outcome: BLOCKED_AUTH
+    on_exhausted: abort_case
+    notes: >-
+      The SAP user lacks an authorisation needed for this step. Recorded as
+      BLOCKED_AUTH, not FAIL: the step was never tested, so this is not evidence of
+      a defect. The case stops here because later steps depend on this one.
+
+  - name: transaction_not_authorized
+    match:
+      regex: "no author[is]?[sz]ation.*transaction|transaction .* is not permitted"
+    actions: []
+    outcome: BLOCKED_AUTH
+    on_exhausted: abort_case
+    notes: The user has no S_TCODE authorisation for this transaction.
+
+  # --- Recoverable data-entry gaps ------------------------------------------------
+  # Values come from the region profile, so a different region supplies different
+  # defaults without touching this file.
+
+  - name: tax_code_required
+    match:
+      regex: "enter tax code"
+    actions:
+      - handler: set_field
+        field: item.tax_code
+        value: "@profile.defaults.tax_code"
+    max_attempts: 2
+    outcome: FAIL
+    on_exhausted: fail_step
+    notes: Tax code missing on the item; filled from the region default.
+
+  - name: net_price_required
+    match:
+      regex: "net price must be greater than 0"
+    actions:
+      - handler: set_field
+        field: item.net_price
+        value: "@profile.defaults.net_price"
+    max_attempts: 2
+    outcome: FAIL
+    on_exhausted: fail_step
+    notes: Net price missing or zero; filled from the region default.
+
+  - name: gl_account_required
+    match:
+      regex: "enter g/?l account"
+    actions:
+      - handler: set_field
+        field: item.gl_account
+        value: "@profile.defaults.gl_account"
+    max_attempts: 2
+    outcome: FAIL
+    on_exhausted: fail_step
+    notes: G/L account missing on an account-assigned item.
+
+  - name: cost_centre_required
+    match:
+      regex: "enter cost cent(er|re)"
+    actions:
+      - handler: set_field
+        field: item.cost_centre
+        value: "@case.cost_centre"
+    max_attempts: 2
+    outcome: FAIL
+    on_exhausted: fail_step
+    notes: >-
+      Cost centre comes from the data row rather than a region default, because it
+      varies per requisition line.
+
+  - name: plant_required
+    match:
+      regex: "enter plant"
+    actions:
+      - handler: set_field
+        field: item.plant
+        value: "@case.plant"
+    max_attempts: 2
+    outcome: FAIL
+    on_exhausted: fail_step
+    notes: Plant missing on the item; taken from the data row.
+
+  - name: delivery_date_in_past
+    match:
+      # Digits are wildcarded on purpose. The original scripts keyed on the literal
+      # text "Item 10 Delivery Date 08.09.2025 is in the past", which stopped
+      # matching the day that date passed.
+      regex: "delivery date \\d+\\.\\d+\\.\\d+ is in the past"
+    actions:
+      - handler: set_field
+        field: item.delivery_date
+        value: "@profile.defaults.delivery_date"
+    max_attempts: 2
+    outcome: FAIL
+    on_exhausted: fail_step
+    notes: Delivery date fell into the past; reset to the region's default date.
+
+  - name: no_conditions_no_input_authorization
+    match:
+      regex: "no conditions determined \\(no authorization for input\\)"
+    actions:
+      - handler: set_field
+        field: item.net_price
+        value: "@profile.defaults.net_price"
+    max_attempts: 1
+    outcome: BLOCKED_AUTH
+    on_exhausted: fail_step
+    notes: >-
+      Pricing conditions could not be determined because the user may not maintain
+      them. Entering the price manually lets the document proceed; if it does not,
+      the finding is an authorisation gap rather than a defect.
+
+  # --- Known-benign messages ------------------------------------------------------
+
+  - name: document_held_or_parked
+    match:
+      regex: "(has been held|was parked|held under the number)"
+      type: S
+    actions: []
+    outcome: PASS
+    on_exhausted: continue
+    notes: Informational success message; not a failure.
+
+  - name: display_only_mode
+    match:
+      regex: "display( |-)only|no changes (are )?possible"
+      type: W
+    actions: []
+    outcome: PASS
+    on_exhausted: continue
+    notes: >-
+      Expected in the display transactions (ME53N, ME23N, MI03), which deliberately
+      open a document read-only.

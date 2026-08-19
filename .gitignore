@@ -1,0 +1,30 @@
+# Byte-compiled / venv
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Test + tooling
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Run output: never committed ---
+runs/
+evidence/
+logs/
+out/
+
+# --- Data workbooks contain bot credentials; only empty templates are committed ---
+data/*.xlsx
+*_UAT.xlsx
+*_updated.xlsx
+!templates/*.xlsx
+
+# Local overrides
+profiles/local/
+.env
